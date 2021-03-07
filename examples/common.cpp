@@ -3,7 +3,6 @@
 
 struct Event1 {};
 struct Event2 {};
-struct Event3 {};
 
 
 class State1
