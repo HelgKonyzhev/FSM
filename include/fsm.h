@@ -9,7 +9,7 @@ namespace FSM
 	class StateMachineDef
 	{
 	public:
-		using Base = T;
+		using StateMachineType = T;
 
 		template<typename... Ts>
 		using TransitionTable = typename Detail::TransitionTable<T, Ts...>;
@@ -20,21 +20,19 @@ namespace FSM
 
 
 	template<typename Def>
-	class StateMachine : public Def::Base
+	class StateMachine : public Def::StateMachineType
 	{
 	public:
 		using TransitionTable = typename Def::TransitionTable;
 		using InitialState = typename Detail::StateWrapper<typename Def::InitialState>;
 		using States = typename TransitionTable::States;
 
-		using Def::Base::Base;
+		using Def::StateMachineType::StateMachineType;
 
 		template<typename Event>
 		void process(Event&& e)
 		{
-			std::cout << "enter state idx: " << m_currentStateIdx << std::endl;
 			m_currentStateIdx = TransitionTable::process(m_states, m_currentStateIdx, e);
-			std::cout << "exit state idx: " << m_currentStateIdx << std::endl;
 		}
 
 	private:

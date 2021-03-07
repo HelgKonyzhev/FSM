@@ -3,7 +3,6 @@
 
 #include <type_traits>
 #include <tuple>
-#include <iostream>
 
 namespace FSM
 {
@@ -58,9 +57,9 @@ namespace FSM
 
 		template<typename FrontType, template<typename...> typename Tuple, typename... Ts, typename Type, typename... Types>
 		struct ReplaceTypeFrontImpl<FrontType, Tuple<Ts...>, Type, Types...>
-				: std::conditional_t<std::is_same_v<FrontType, Type>,
-									 ReplaceTypeFrontImpl<FrontType, Tuple<FrontType, Ts...>, Types...>,
-									 ReplaceTypeFrontImpl<FrontType, Tuple<Ts..., Type>, Types...>
+				: std::conditional_t<std::is_same_v<FrontType, Type>
+									 , ReplaceTypeFrontImpl<FrontType, Tuple<FrontType, Ts...>, Types...>
+									 , ReplaceTypeFrontImpl<FrontType, Tuple<Ts..., Type>, Types...>
 									>
 		{};
 

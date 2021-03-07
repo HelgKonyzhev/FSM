@@ -83,7 +83,7 @@ namespace FSM
 		template<typename T>
 		struct StateWrapper : public T
 		{
-			using Base = T;
+			using StateType = T;
 
 			template<typename Arg,
 					 typename = std::enable_if_t<HasOnEnterMove<T, Arg>::value>
@@ -106,10 +106,7 @@ namespace FSM
 			template<typename Arg,
 					 typename = std::enable_if_t<!HasOnEnterConstRef<T, Arg>::value && !HasOnEnterMove<T, Arg>::value>
 					>
-			void doOnEnter(const Arg&) const
-			{
-				std::cout << "has no onEnter method" << std::endl;
-			}
+			void doOnEnter(const Arg&) const {}
 
 			template<typename Arg,
 					 typename = std::enable_if_t<HasOnExitMove<T, Arg>::value>
@@ -132,10 +129,7 @@ namespace FSM
 			template<typename Arg,
 					 typename = std::enable_if_t<!HasOnExitConstRef<T, Arg>::value && !HasOnExitMove<T, Arg>::value>
 					>
-			void doOnExit(const Arg&) const
-			{
-				std::cout << "has no onExit method" << std::endl;
-			}
+			void doOnExit(const Arg&) const {}
 		};
 
 
@@ -196,7 +190,7 @@ namespace FSM
 
 				from.doOnExit(std::move(e));
 
-				if(Condition{}(from, e, to))
+				if(Condition{}(from, std::move(e), to))
 				{
 					to.doOnEnter(std::move(e));
 					return Detail::TypeIndex<To, States>::value;

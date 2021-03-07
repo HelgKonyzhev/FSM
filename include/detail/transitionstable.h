@@ -27,15 +27,17 @@ namespace FSM
 		using StatesTuple = typename StatesExtractor<Ts...>::Type;
 
 
+		template<typename FS, typename E>
 		struct TransitionStub
 		{
-			using From = struct{};
+			using From = FS;
 			using To = struct{};
 
-			template<typename States, typename Event>
-			static size_t transit(States&, Event&&)
+			template<typename States>
+			static size_t transit(States&, E&&)
 			{
-				throw std::logic_error("Unimplemented transition");
+				throw std::logic_error(std::string("Unimplemented transition from ") + typeid(std::decay_t<typename From::StateType>).name()
+									   + " for " + typeid(std::decay_t<E>).name());
 			}
 		};
 
@@ -51,9 +53,9 @@ namespace FSM
 		struct GetTransitionImpl<State, Event, Tuple<Ts...>, Transition, Transitions...>
 				: std::conditional_t<(std::is_same_v<State, typename Transition::From> && std::is_same_v<Event, typename Transition::Event>),
 									 GetTransitionImpl<State, Event, Tuple<Ts..., Transition>, Transitions...>,
-									 std::conditional_t<(sizeof... (Transitions) == 0 && sizeof... (Ts) == 0),
-														GetTransitionImpl<State, Event, Tuple<Ts..., TransitionStub>, Transitions...>,
-														GetTransitionImpl<State, Event, Tuple<Ts...>, Transitions...>
+									 std::conditional_t<(sizeof... (Transitions) == 0 && sizeof... (Ts) == 0)
+														, GetTransitionImpl<State, Event, Tuple<Ts..., TransitionStub<State, Event>>, Transitions...>
+														, GetTransitionImpl<State, Event, Tuple<Ts...>, Transitions...>
 													   >
 									>
 		{};
@@ -67,15 +69,37 @@ namespace FSM
 		struct GetTransition<State, Event, Tuple<Transitions...>> : GetTransitionImpl<State, Event, std::tuple<>, Transitions...> {};
 
 
+		template <typename T, typename... Ts>
+		struct AssertUniqueTransitionsImpl
+		{
+			using Type = T;
+		};
+
+
+		template<template<typename...> typename Tuple, typename... Ts, typename U, typename... Us>
+		struct AssertUniqueTransitionsImpl<Tuple<Ts...>, U, Us...> : AssertUniqueTransitionsImpl<Tuple<Ts..., U>, Us...>
+		{
+			static_assert(!(std::is_same_v<U, Ts> || ...), "Duplicate transitions not allowed");
+		};
+
+
+		template<typename Tuple>
+		struct AssertUniqueTransitions;
+
+
+		template<template<typename...> typename Tuple, typename... Ts>
+		struct AssertUniqueTransitions<Tuple<Ts...>> : public AssertUniqueTransitionsImpl<std::tuple<>, Ts...> {};
+
+
 		template<typename StateMachineDef, typename... Ts>
 		class TransitionTable
 		{
 		public:
 			using InititalState = StateWrapper<typename StateMachineDef::InitialState>;
 			using States = typename Detail::ReplaceTypeFront<InititalState, typename Detail::UniqueTypes<Detail::StatesTuple<Ts...>>::Type>::Type;
-			using Transitions = std::tuple<Ts...>;
+			using Transitions = typename AssertUniqueTransitions<std::tuple<Ts...>>::Type;
 
-			template <typename Event, typename Indices = std::make_index_sequence<sizeof...(Ts)>>
+			template <typename Event, typename Indices = std::make_index_sequence<std::tuple_size_v<States>>>
 			static constexpr size_t process(States& states, const size_t idx, Event&& e)
 			{
 				return processImpl(states, idx, e, Indices {});
